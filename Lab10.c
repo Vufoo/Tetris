@@ -139,26 +139,15 @@ uint32_t time=0; 	//time counter
 uint32_t ADCdata;
 uint32_t currentPosition=110; //middle position
 uint32_t score = 0;
-uint32_t scoreflag = 1;
+//uint32_t scoreflag = 1;
+uint32_t increment = 0;
  
 void SysTick_Handler(void){ 
 	ADCdata = ADC_In();
 	semaphore = 1;
-		if(scoreflag){
-		if(language == 'e'){
-
-		SSD1306_SetCursor(11,0);
-		SSD1306_OutString("score\x3A");
-		}
-		else{
-			SSD1306_SetCursor(8,0);
-			SSD1306_OutString("Puntuaci\xA2n");
-		}
 	
-		}
+		
 	
-	
-    
 	if(count%level==0){
 	
 		
@@ -189,7 +178,7 @@ void SysTick_Handler(void){
 		
 	}
 	
-	if(count%150==0&&count!=0){ //increment speed every 7.5 seconds
+	if(count%200==0&&score!=0){ //increment speed every 10 seconds
 		if(speed==1){
 			speed = 1;
 		}
@@ -198,11 +187,17 @@ void SysTick_Handler(void){
 		}
 		
 	}
+	
+	
+  if(count%100 ==0){
+		Sound_Etc();
+	}
+	
 	count++;
 }
 
 uint32_t random(void){//returns 1-7 randomly
-	return (rand()%(7-1+1))+1;//((Random32()>>24)%7)+1;
+	return ((Random32()>>24)%7)+1;//(rand()%(7-1+1))+1;
 }
 
 void clearLayout(void){		//clears grid
@@ -262,8 +257,20 @@ void startGame(){
 
   while(1){
 		if(Layout[0][0]==1||Layout[1][0]==1||Layout[2][0]==1||Layout[3][0]==1||Layout[4][0]==1||Layout[5][0]==1||Layout[6][0]==1||Layout[7][0]==1||Layout[8][0]==1||Layout[9][0]==1){//gameover
+			Sound_GameOver();
 			break;
 		}
+		
+		if(language == 'e'){
+
+		SSD1306_SetCursor(10,0);
+		SSD1306_OutString("score");
+		}
+		else{
+			SSD1306_SetCursor(7,0);
+			SSD1306_OutString("Puntuacion");
+		}
+	
 		SSD1306_SetCursor(16,0);
 		SSD1306_OutUDec16(score);
 		SSD1306_SetCursor(0,0);
@@ -336,6 +343,7 @@ void startGame(){
 		
 		
 		if((GPIO_PORTE_DATA_R&0x02)!=0){
+			
 			while((GPIO_PORTE_DATA_R&0x02)!=0){
 				level = 1;
 			}
@@ -372,13 +380,15 @@ int main(void){
   Profile_Init(); // PB5,PB4,PF3,PF2,PF1 
 		SSD1306_DrawBMP(0,63, tetris2, 0, SSD1306_WHITE);
 		SSD1306_OutBuffer();
-		//SSD1306_SetCursor(7,1);
-		//SSD1306_OutString("TETRIS");
-		SSD1306_SetCursor(9,5);
-		SSD1306_OutString("PLAY");
-		SSD1306_SetCursor(8,7);
+		SSD1306_SetCursor(8,5);
+		SSD1306_OutString("PLAY!");
+		SSD1306_SetCursor(7,7);
 		SSD1306_OutString("ENG/ESP");
-		//SSD1306_SetCursor(7,3);
+		
+		
+		//SSD1306_DrawBMP(0,63, tetris2, 0, SSD1306_WHITE);
+		
+		//SSD1306_OutBuffer();
 		
 
 
@@ -389,22 +399,22 @@ int main(void){
 			if((GPIO_PORTE_DATA_R&0x04)!=0){		//button to change to english
 				
 				language = Words[0];
-				
+				SSD1306_SetCursor(7,7);
+				SSD1306_OutString("ENGLISH");
+				SSD1306_SetCursor(8,5);
+				SSD1306_OutString("PLAY!");
 				
 				
 			}
 			if((GPIO_PORTE_DATA_R&0x08)!=0){		//button to change to spanish
 				
 				language = Words[1];
-				
+				SSD1306_SetCursor(7,7);
+				SSD1306_OutString("SPANISH");
+				SSD1306_SetCursor(8,5);
+				SSD1306_OutString("JUGAR");
 				
 			}
-			if(language == 'e'){
-				
-			}
-			else{
-			}
-			
 			
 		}
 		
@@ -415,9 +425,11 @@ int main(void){
 		
 		startGame();			//starts game
 											//game ends
-		level = 4000000000;  //stops incrementing after game ends
+		//level = 4000000000;  //stops incrementing after game ends
+		NVIC_ST_CTRL_R=5; //stop interrupt
+
 		clearLayout();		//clears grid
-		scoreflag = 0;		// dont show score on end
+		//scoreflag = 0;		// dont show score on end
 		
 		while((GPIO_PORTE_DATA_R&0x01)==0){
 			
@@ -431,9 +443,10 @@ int main(void){
 			}
 		
 		}
-		scoreflag = 1; //  display score on after game over screen
+		//scoreflag = 1; //  display score on after game over screen
 		speed = 20; //reset back to normal speed
-		
+		score = 0;
+		NVIC_ST_CTRL_R=7; //start interrupt
 		
 	
 
